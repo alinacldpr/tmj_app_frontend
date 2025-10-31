@@ -74,6 +74,7 @@ async function addCase(kind, file, captured) {
       status: "Awaiting Analysis",
       thumb: kind === "photo" ? url : null,
       media: url,
+      observations: null, // will be filled on case page
     };
     const list = JSON.parse(localStorage.getItem(LS_KEY_CASES) || "[]");
     list.unshift(rec);
@@ -105,7 +106,7 @@ clearAllBtn.onclick = () => {
   }
 };
 
-// ---------- render recent cases ----------
+// ---------- render recent cases (click row to open detail) ----------
 function renderCases() {
   const list = JSON.parse(localStorage.getItem(LS_KEY_CASES) || "[]");
   caseList.innerHTML = "";
@@ -116,6 +117,9 @@ function renderCases() {
   for (const c of list) {
     const row = document.createElement("div");
     row.className = "case";
+    row.onclick = () => {
+      window.location.href = `case.html?id=${encodeURIComponent(c.id)}`;
+    };
 
     const mediaEl = document.createElement(
       c.kind === "photo" ? "img" : "video"
@@ -139,7 +143,9 @@ function renderCases() {
       <div class="kvs">
         <div class="muted">Age: ${c.patient?.age || "-"}</div>
         <div class="muted">Date: ${c.patient?.date || "-"}</div>
-      </div>`;
+      </div>
+      ${c.observations ? '<div class="note">Observations added</div>' : ""}
+    `;
     row.appendChild(meta);
 
     const badge = document.createElement("span");
@@ -153,7 +159,8 @@ function renderCases() {
     del.className = "mini danger";
     del.textContent = "Delete";
     del.title = "Delete this case";
-    del.onclick = () => {
+    del.onclick = (e) => {
+      e.stopPropagation(); // don't open the case if user hits Delete
       if (confirm("Delete this case?")) deleteCase(c.id);
     };
     row.appendChild(del);
@@ -170,13 +177,10 @@ function isMobile() {
 // ---------- desktop webcam modal ----------
 async function openCam(kind) {
   currentKind = kind; // 'photo' or 'video'
-
-  // On mobile, prefer native camera UI via file inputs
   if (isMobile()) {
     (kind === "photo" ? photoPicker : videoPicker).click();
     return;
   }
-
   try {
     camStream = await navigator.mediaDevices.getUserMedia({
       video: {
@@ -195,7 +199,6 @@ async function openCam(kind) {
   btnStop.disabled = true;
   camModal.style.display = "flex";
 }
-
 function closeCam() {
   if (mediaRec && mediaRec.state === "recording") mediaRec.stop();
   if (camStream) {
@@ -204,7 +207,6 @@ function closeCam() {
   }
   camModal.style.display = "none";
 }
-
 btnClose.onclick = closeCam;
 
 // Photo capture (desktop)
@@ -221,16 +223,13 @@ btnSnap.onclick = async () => {
       blob = null;
     }
   }
-
   if (!blob) {
-    // fallback via canvas
     const cvs = document.createElement("canvas");
     cvs.width = camVideo.videoWidth;
     cvs.height = camVideo.videoHeight;
     cvs.getContext("2d").drawImage(camVideo, 0, 0);
     blob = await new Promise((res) => cvs.toBlob(res, "image/jpeg", 0.9));
   }
-
   await addCase(
     "photo",
     new File([blob], `photo_${Date.now()}.jpg`, { type: "image/jpeg" }),

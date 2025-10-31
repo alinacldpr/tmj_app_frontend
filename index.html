@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mouth Video Capture</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 20px;
+      }
+      .row {
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+      }
+      .panel {
+        border: 1px solid #eee;
+        border-radius: 10px;
+        padding: 16px;
+        max-width: 420px;
+      }
+      video {
+        width: 100%;
+        background: #000;
+        border-radius: 8px;
+      }
+      button {
+        padding: 10px 14px;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .hint {
+        color: #666;
+        font-size: 14px;
+        margin-top: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Mouth Video Capture (Prototype)</h1>
+
+    <div class="row">
+      <div class="panel">
+        <h2>Record from camera</h2>
+        <video id="preview" playsinline autoplay muted></video>
+        <div
+          style="
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+          "
+        >
+          <button id="startBtn">Start</button>
+          <button id="stopBtn" disabled>Stop</button>
+          <span id="timer">00:00</span>
+        </div>
+        <div id="downloadRow" style="margin-top: 10px"></div>
+        <div class="hint">Needs HTTPS on mobile for camera access.</div>
+      </div>
+
+      <div class="panel">
+        <h2>Upload an existing video</h2>
+        <input id="fileInput" type="file" accept="video/*" />
+        <video id="playback" controls style="margin-top: 10px"></video>
+        <div id="pickedInfo" class="hint"></div>
+      </div>
+    </div>
+
+    <script>
+      const preview = document.getElementById("preview");
+      const startBtn = document.getElementById("startBtn");
+      const stopBtn = document.getElementById("stopBtn");
+      const timerEl = document.getElementById("timer");
+      const dlRow = document.getElementById("downloadRow");
+      let stream = null,
+        rec = null,
+        chunks = [],
+        t0 = 0,
+        timer = null;
+
+      function fmt(n) {
+        return String(n).padStart(2, "0");
+      }
+      function startTimer() {
+        t0 = Date.now();
+        timer = setInterval(() => {
+          const s = Math.floor((Date.now() - t0) / 1000);
+          timerEl.textContent = `${fmt((s / 60) | 0)}:${fmt(s % 60)}`;
+        }, 200);
+      }
+      function stopTimer() {
+        clearInterval(timer);
+        timer = null;
+      }
+
+      async function ensureCamera() {
+        if (stream) return;
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            facingMode: "environment",
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+        });
+        preview.srcObject = stream;
+      }
+
+      startBtn.onclick = async () => {
+        try {
+          await ensureCamera();
+        } catch (e) {
+          alert("Camera error: " + e.message);
+          return;
+        }
+        chunks = [];
+        let mime = "";
+        if (MediaRecorder.isTypeSupported("video/mp4;codecs=h264"))
+          mime = "video/mp4;codecs=h264";
+        else if (MediaRecorder.isTypeSupported("video/webm;codecs=vp9"))
+          mime = "video/webm;codecs=vp9";
+        else if (MediaRecorder.isTypeSupported("video/webm;codecs=vp8"))
+          mime = "video/webm;codecs=vp8";
+
+        rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+        rec.ondataavailable = (e) => {
+          if (e.data && e.data.size) chunks.push(e.data);
+        };
+        rec.onstop = () => {
+          stopTimer();
+          const blob = new Blob(chunks, { type: rec.mimeType || "video/webm" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          const ext = blob.type.includes("mp4") ? "mp4" : "webm";
+          a.href = url;
+          a.download = `patient_capture_${Date.now()}.${ext}`;
+          a.textContent = "Download recorded video";
+          dlRow.innerHTML = "";
+          dlRow.appendChild(a);
+        };
+        rec.start(100);
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        startTimer();
+      };
+
+      stopBtn.onclick = () => {
+        if (rec && rec.state === "recording") rec.stop();
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+      };
+
+      // Upload & preview existing file (local preview only for now)
+      const fileInput = document.getElementById("fileInput");
+      const playback = document.getElementById("playback");
+      const pickedInfo = document.getElementById("pickedInfo");
+      fileInput.onchange = () => {
+        const f = fileInput.files?.[0];
+        if (!f) return;
+        const url = URL.createObjectURL(f);
+        playback.src = url;
+        pickedInfo.textContent = `Selected: ${f.name} — ${(
+          f.size /
+          1024 /
+          1024
+        ).toFixed(1)} MB`;
+      };
+    </script>
+  </body>
+</html>

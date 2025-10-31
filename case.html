@@ -125,6 +125,7 @@
         display: flex;
         gap: 10px;
         margin-top: 10px;
+        align-items: center;
       }
       .danger {
         background: var(--dangerbg);
@@ -174,16 +175,34 @@
             <span class="muted">Loading…</span>
           </div>
           <div id="meta" class="meta"></div>
+
           <div class="btnRow">
-            <!-- Open Original removed -->
+            <button id="runAnalysis" class="small ok" style="display: none">
+              Analyze case
+            </button>
+            <span id="anMsg" class="saved"></span>
+            <div style="flex: 1"></div>
             <button id="deleteCase" class="small danger">Delete Case</button>
+          </div>
+
+          <!-- Analysis results -->
+          <div
+            id="analysisBlock"
+            class="panel"
+            style="margin-top: 16px; display: none"
+          >
+            <div class="title">Analysis</div>
+            <div id="anNums" class="muted" style="margin-bottom: 10px"></div>
+            <div
+              id="anGrid"
+              style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px"
+            ></div>
           </div>
         </div>
 
         <!-- RIGHT: observations -->
         <div class="panel">
           <div class="title">Add clinical observations</div>
-
           <div class="two">
             <div>
               <label>Clicks at Opening / Closing</label>
@@ -209,17 +228,24 @@
 
           <label style="margin-top: 12px">Click sound</label>
           <div class="seg" role="radiogroup" aria-label="Click sound">
-            <input type="radio" id="soundNone" name="sound" value="none" />
-            <label for="soundNone">None</label>
-            <input type="radio" id="soundClear" name="sound" value="clear" />
-            <label for="soundClear">Clear</label>
+            <input
+              type="radio"
+              id="soundNone"
+              name="sound"
+              value="none"
+            /><label for="soundNone">None</label>
+            <input
+              type="radio"
+              id="soundClear"
+              name="sound"
+              value="clear"
+            /><label for="soundClear">Clear</label>
             <input
               type="radio"
               id="soundDiscreet"
               name="sound"
               value="discreet"
-            />
-            <label for="soundDiscreet">Discreet</label>
+            /><label for="soundDiscreet">Discreet</label>
           </div>
 
           <label style="margin-top: 12px">Notes</label>
@@ -237,25 +263,35 @@
     </div>
 
     <script>
+      // ------------ config / helpers ------------
+      const BACKEND = "https://YOUR_BACKEND_URL/analyze"; // <-- put your FastAPI /analyze URL
       const LS_KEY_CASES = "tmj.cases";
       const $ = (id) => document.getElementById(id);
       const getParam = (k) => new URL(location.href).searchParams.get(k);
 
-      const content = $("content");
-      const errorBox = $("errorBox");
-      const mediaBox = $("mediaBox");
-      const meta = $("meta");
-      const btnDelete = $("deleteCase");
-      const btnSave = $("saveObs");
-      const saveMsg = $("saveMsg");
-      const clicksEl = $("obsClicks");
-      const widthEl = $("obsWidth");
-      const notesEl = $("obsNotes");
+      // DOM refs
+      const content = $("content"),
+        errorBox = $("errorBox");
+      const mediaBox = $("mediaBox"),
+        meta = $("meta");
+      const runBtn = $("runAnalysis"),
+        anMsg = $("anMsg");
+      const anBlock = $("analysisBlock"),
+        anNums = $("anNums"),
+        anGrid = $("anGrid");
+      const btnDelete = $("deleteCase"),
+        btnSave = $("saveObs"),
+        saveMsg = $("saveMsg");
+      const clicksEl = $("obsClicks"),
+        widthEl = $("obsWidth"),
+        notesEl = $("obsNotes");
       const soundEls = {
         none: $("soundNone"),
         clear: $("soundClear"),
         discreet: $("soundDiscreet"),
       };
+
+      const id = getParam("id");
 
       function getSound() {
         return soundEls.none.checked
@@ -270,8 +306,6 @@
         (soundEls[v] || soundEls.none).checked = true;
       }
 
-      const id = getParam("id");
-
       function showError(msg) {
         errorBox.style.display = "block";
         errorBox.textContent = msg + " — ";
@@ -282,6 +316,7 @@
         errorBox.appendChild(a);
       }
 
+      // ------------ load case ------------
       let current = null,
         list = [];
       (function init() {
@@ -289,6 +324,7 @@
           showError("Missing case id");
           return;
         }
+
         try {
           list = JSON.parse(localStorage.getItem(LS_KEY_CASES) || "[]");
         } catch {
@@ -311,6 +347,7 @@
           img.style.cursor = "zoom-in";
           img.onclick = () => img.requestFullscreen?.();
           mediaBox.appendChild(img);
+          runBtn.style.display = "inline-block"; // show Analyze for photos
         } else {
           const vid = document.createElement("video");
           vid.src = current.media;
@@ -318,6 +355,7 @@
           vid.playsInline = true;
           vid.style.background = "#000";
           mediaBox.appendChild(vid);
+          runBtn.style.display = "none";
         }
 
         meta.textContent = `${current.patient?.name || "Unnamed"} — ${
@@ -343,22 +381,99 @@
         };
       })();
 
+      // ------------ save observations ------------
       btnSave.onclick = () => {
         if (!current) return;
-        const idx = list.findIndex((c) => c.id === id);
+        const listNow = JSON.parse(localStorage.getItem(LS_KEY_CASES) || "[]");
+        const idx = listNow.findIndex((c) => c.id === id);
         if (idx === -1) return;
 
-        const obs = {
+        listNow[idx].observations = {
           clicks: clicksEl.value ? Number(clicksEl.value) : null,
           clickSound: getSound(),
           notes: (notesEl.value || "").trim(),
           incisorsWidthMm: widthEl.value ? Number(widthEl.value) : null,
         };
-        list[idx].observations = obs;
-        localStorage.setItem(LS_KEY_CASES, JSON.stringify(list));
-
+        localStorage.setItem(LS_KEY_CASES, JSON.stringify(listNow));
         saveMsg.textContent = "Saved.";
         setTimeout(() => (saveMsg.textContent = ""), 1500);
+      };
+
+      // ------------ analyze case ------------
+      runBtn.onclick = async () => {
+        anMsg.textContent = "Running analysis…";
+        runBtn.disabled = true;
+        try {
+          const known = widthEl.value
+            ? Number(widthEl.value)
+            : current?.observations?.incisorsWidthMm || null;
+
+          const res = await fetch(BACKEND, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              image_data_url: current.media, // base64 data URL saved in localStorage
+              known_centrals_mm: known || null,
+            }),
+          });
+          const data = await res.json();
+          if (!data.ok) throw new Error(data.error || "Analysis failed");
+
+          // Numbers
+          const px = data.gap_px;
+          const mm = data.gap_mm != null ? data.gap_mm.toFixed(2) + " mm" : "—";
+          const scale =
+            data.px_per_mm != null ? data.px_per_mm.toFixed(2) + " px/mm" : "—";
+          anNums.innerHTML = `<strong>AB:</strong> ${px} px &nbsp; <strong>(${mm})</strong> &nbsp; <span class="muted">scale ${scale}</span>`;
+
+          // 2×2 images
+          anGrid.innerHTML = "";
+          const tile = (title, src) => {
+            const box = document.createElement("div");
+            box.style.background = "#111826";
+            box.style.border = "1px solid #232835";
+            box.style.borderRadius = "10px";
+            box.style.padding = "8px";
+            const cap = document.createElement("div");
+            cap.textContent = title;
+            cap.style.fontSize = "12px";
+            cap.style.color = "#9aa3af";
+            cap.style.marginBottom = "6px";
+            const img = document.createElement("img");
+            img.src = src;
+            img.style.width = "100%";
+            img.style.borderRadius = "8px";
+            box.appendChild(cap);
+            box.appendChild(img);
+            anGrid.appendChild(box);
+          };
+          tile("Original", data.images.original);
+          tile("Model overlay", data.images.overlay);
+          tile("Binary mask", data.images.binary);
+          tile("Measured (AB)", data.images.measured);
+
+          anBlock.style.display = "block";
+
+          // persist analysis (optional)
+          const i = list.findIndex((c) => c.id === id);
+          if (i !== -1) {
+            list[i].analysis = {
+              gap_px: data.gap_px,
+              gap_mm: data.gap_mm,
+              px_per_mm: data.px_per_mm,
+              images: data.images,
+            };
+            localStorage.setItem(LS_KEY_CASES, JSON.stringify(list));
+          }
+
+          anMsg.textContent = "Done.";
+        } catch (e) {
+          console.error(e);
+          anMsg.textContent = "Error: " + e.message;
+        } finally {
+          runBtn.disabled = false;
+          setTimeout(() => (anMsg.textContent = ""), 2500);
+        }
       };
     </script>
   </body>

@@ -159,6 +159,34 @@
         background: var(--border);
         margin: 14px 0;
       }
+
+      /* Webcam modal */
+      #camModal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 50;
+      }
+      #camBox {
+        background: #111826;
+        border: 1px solid #232835;
+        border-radius: 12px;
+        padding: 16px;
+        width: min(720px, 92vw);
+      }
+      #camVideo {
+        width: 100%;
+        background: #000;
+        border-radius: 8px;
+      }
+      #camBtns {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+      }
     </style>
   </head>
   <body>
@@ -188,7 +216,7 @@
 
           <div class="sep"></div>
           <div class="title" style="margin-top: 4px">Quick access</div>
-          <div class="quick" id="quick">
+          <div class="quick">
             <a href="#" id="newPhoto"
               ><span>New Photo</span><span class="hint">open camera</span></a
             >
@@ -202,6 +230,8 @@
               ><span>Upload Video</span><span class="hint">choose file</span></a
             >
           </div>
+
+          <!-- Hidden inputs for mobile native camera & uploads -->
           <input
             id="photoPicker"
             type="file"
@@ -245,156 +275,20 @@
       </div>
     </div>
 
-    <script>
-      // --- simple storage ---
-      const LS_KEY_PAT = "tmj.patient";
-      const LS_KEY_CASES = "tmj.cases";
+    <!-- Webcam modal (desktop) -->
+    <div id="camModal">
+      <div id="camBox">
+        <div style="font-weight: 600; margin-bottom: 8px">Camera</div>
+        <video id="camVideo" autoplay playsinline muted></video>
+        <div id="camBtns">
+          <button id="snapPhoto">Capture photo</button>
+          <button id="startRec">Start recording</button>
+          <button id="stopRec" disabled>Stop</button>
+          <button id="closeCam">Close</button>
+        </div>
+      </div>
+    </div>
 
-      const pName = document.getElementById("pName");
-      const pAge = document.getElementById("pAge");
-      const pDate = document.getElementById("pDate");
-      const saveBtn = document.getElementById("savePatient");
-      const saveMsg = document.getElementById("saveMsg");
-      const caseList = document.getElementById("caseList");
-      const messages = document.getElementById("messages");
-
-      // load patient defaults
-      (function () {
-        const p = JSON.parse(localStorage.getItem(LS_KEY_PAT) || "{}");
-        if (p.name) pName.value = p.name;
-        if (p.age) pAge.value = p.age;
-        pDate.value = p.date || new Date().toISOString().slice(0, 10);
-        renderCases();
-      })();
-
-      saveBtn.onclick = () => {
-        const obj = {
-          name: pName.value.trim(),
-          age: pAge.value.trim(),
-          date: pDate.value,
-        };
-        localStorage.setItem(LS_KEY_PAT, JSON.stringify(obj));
-        saveMsg.textContent = "Saved.";
-        setTimeout(() => (saveMsg.textContent = ""), 1500);
-      };
-
-      // --- quick access handlers ---
-      const photoPicker = document.getElementById("photoPicker");
-      const videoPicker = document.getElementById("videoPicker");
-      const photoUpload = document.getElementById("photoUpload");
-      const videoUpload = document.getElementById("videoUpload");
-
-      document.getElementById("newPhoto").onclick = (e) => {
-        e.preventDefault();
-        photoPicker.click();
-      };
-      document.getElementById("newVideo").onclick = (e) => {
-        e.preventDefault();
-        videoPicker.click();
-      };
-      document.getElementById("uploadPhoto").onclick = (e) => {
-        e.preventDefault();
-        photoUpload.click();
-      };
-      document.getElementById("uploadVideo").onclick = (e) => {
-        e.preventDefault();
-        videoUpload.click();
-      };
-
-      photoPicker.onchange = async () => {
-        const f = photoPicker.files?.[0];
-        if (!f) return;
-        await addCase("photo", f, /*captured*/ true);
-      };
-      videoPicker.onchange = async () => {
-        const f = videoPicker.files?.[0];
-        if (!f) return;
-        await addCase("video", f, true);
-      };
-      photoUpload.onchange = async () => {
-        const f = photoUpload.files?.[0];
-        if (!f) return;
-        await addCase("photo", f, false);
-      };
-      videoUpload.onchange = async () => {
-        const f = videoUpload.files?.[0];
-        if (!f) return;
-        await addCase("video", f, false);
-      };
-
-      async function addCase(kind, file, captured) {
-        const pat = JSON.parse(localStorage.getItem(LS_KEY_PAT) || "{}");
-        const reader = new FileReader();
-        reader.onload = () => {
-          const url = reader.result; // data URL
-          const id = Date.now().toString();
-          const rec = {
-            id,
-            kind,
-            captured,
-            ts: new Date().toISOString(),
-            patient: pat, // snapshot of patient info at the time
-            status: "Awaiting Analysis",
-            thumb: kind === "photo" ? url : null, // for videos we’ll create thumb lazily
-            media: url, // in MVP we keep data URL; later upload to backend
-          };
-          const list = JSON.parse(localStorage.getItem(LS_KEY_CASES) || "[]");
-          list.unshift(rec);
-          localStorage.setItem(LS_KEY_CASES, JSON.stringify(list));
-          messages.textContent = `${
-            kind === "photo" ? "Photo" : "Video"
-          } added for ${pat.name || "patient"}.`;
-          renderCases();
-        };
-        reader.readAsDataURL(file);
-      }
-
-      function renderCases() {
-        const list = JSON.parse(localStorage.getItem(LS_KEY_CASES) || "[]");
-        caseList.innerHTML = "";
-        if (!list.length) {
-          caseList.innerHTML = '<div class="note">No cases yet.</div>';
-          return;
-        }
-        for (const c of list) {
-          const row = document.createElement("div");
-          row.className = "case";
-
-          const img = document.createElement(
-            c.kind === "photo" ? "img" : "video"
-          );
-          img.className = "thumb";
-          img.src = c.thumb || c.media;
-          if (c.kind === "video") {
-            img.muted = true;
-            img.loop = true;
-            img.autoplay = true;
-            img.playsInline = true;
-          }
-          row.appendChild(img);
-
-          const meta = document.createElement("div");
-          meta.innerHTML = `
-        <div><strong>${c.patient?.name || "Unnamed"}</strong> — ${
-            c.kind === "photo" ? "Photo" : "Video"
-          }</div>
-        <div class="muted">${new Date(c.ts).toLocaleString()}</div>
-        <div class="kvs">
-          <div class="muted">Age: ${c.patient?.age || "-"}</div>
-          <div class="muted">Date: ${c.patient?.date || "-"}</div>
-        </div>`;
-          row.appendChild(meta);
-
-          const badge = document.createElement("span");
-          badge.className =
-            "badge " + (c.status.includes("Await") ? "await" : "ready");
-          badge.textContent = c.status;
-          badge.classList.add("status");
-          row.appendChild(badge);
-
-          caseList.appendChild(row);
-        }
-      }
-    </script>
+    <script src="app.js"></script>
   </body>
 </html>

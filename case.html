@@ -77,10 +77,6 @@
         min-height: 110px;
         resize: vertical;
       }
-      .row {
-        display: flex;
-        gap: 10px;
-      }
       .seg {
         display: flex;
         gap: 8px;
@@ -179,13 +175,7 @@
           </div>
           <div id="meta" class="meta"></div>
           <div class="btnRow">
-            <button
-              id="openInNew"
-              class="small ok"
-              title="Open raw media in new tab"
-            >
-              Open Original
-            </button>
+            <!-- Open Original removed -->
             <button id="deleteCase" class="small danger">Delete Case</button>
           </div>
         </div>
@@ -247,10 +237,7 @@
     </div>
 
     <script>
-      // ---- config ----
       const LS_KEY_CASES = "tmj.cases";
-
-      // tiny helpers
       const $ = (id) => document.getElementById(id);
       const getParam = (k) => new URL(location.href).searchParams.get(k);
 
@@ -258,7 +245,6 @@
       const errorBox = $("errorBox");
       const mediaBox = $("mediaBox");
       const meta = $("meta");
-      const btnOpen = $("openInNew");
       const btnDelete = $("deleteCase");
       const btnSave = $("saveObs");
       const saveMsg = $("saveMsg");
@@ -296,7 +282,6 @@
         errorBox.appendChild(a);
       }
 
-      // Load & render
       let current = null,
         list = [];
       (function init() {
@@ -304,7 +289,6 @@
           showError("Missing case id");
           return;
         }
-
         try {
           list = JSON.parse(localStorage.getItem(LS_KEY_CASES) || "[]");
         } catch {
@@ -316,7 +300,6 @@
           return;
         }
 
-        // render visible now that we have data
         content.style.display = "grid";
         errorBox.style.display = "none";
 
@@ -352,7 +335,6 @@
           setSound("none");
         }
 
-        btnOpen.onclick = () => window.open(current.media, "_blank");
         btnDelete.onclick = () => {
           if (!confirm("Delete this case?")) return;
           const newList = list.filter((c) => c.id !== id);
@@ -361,15 +343,10 @@
         };
       })();
 
-      // Save observations
       btnSave.onclick = () => {
-        if (!current) {
-          return;
-        }
+        if (!current) return;
         const idx = list.findIndex((c) => c.id === id);
-        if (idx === -1) {
-          return;
-        }
+        if (idx === -1) return;
 
         const obs = {
           clicks: clicksEl.value ? Number(clicksEl.value) : null,

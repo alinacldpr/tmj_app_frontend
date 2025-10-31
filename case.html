@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Case Detail</title>
+    <style>
+      :root {
+        --bg: #0f1115;
+        --panel: #181b22;
+        --muted: #9aa3af;
+        --text: #e5e7eb;
+        --btn: #2a2f3a;
+        --border: #232835;
+        --dangerbg: #3b1f23;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Helvetica,
+          Arial;
+      }
+      .wrap {
+        max-width: 980px;
+        margin: 20px auto;
+        padding: 0 16px;
+      }
+      a.back {
+        text-decoration: none;
+        color: #cbd5e1;
+        font-size: 14px;
+      }
+      h1 {
+        font-size: 26px;
+        margin: 8px 0 16px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+      @media (min-width: 920px) {
+        .grid {
+          grid-template-columns: 60% 40%;
+        }
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 16px;
+      }
+      .title {
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+      label {
+        display: block;
+        font-size: 13px;
+        color: var(--muted);
+        margin: 10px 0 6px;
+      }
+      input,
+      textarea,
+      button {
+        width: 100%;
+        background: var(--btn);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 12px;
+      }
+      textarea {
+        min-height: 110px;
+        resize: vertical;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+      }
+      .seg {
+        display: flex;
+        gap: 8px;
+      }
+      .seg input {
+        display: none;
+      }
+      .seg label {
+        user-select: none;
+        cursor: pointer;
+        background: #141820;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 8px 12px;
+        color: #d1d5db;
+      }
+      .seg input:checked + label {
+        outline: 2px solid #334155;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .mediaBox {
+        position: relative;
+        background: #0b0e14;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        min-height: 120px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .mediaBox img,
+      .mediaBox video {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .meta {
+        font-size: 13px;
+        color: var(--muted);
+        margin-top: 8px;
+      }
+      .btnRow {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      .danger {
+        background: var(--dangerbg);
+        color: #fecaca;
+        border-color: #5a1f27;
+      }
+      .ok {
+        background: #1f2937;
+        border-color: #2b3342;
+      }
+      .small {
+        font-size: 12px;
+        padding: 6px 10px;
+        width: auto;
+      }
+      .two {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .saved {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 6px;
+      }
+      .error {
+        padding: 14px;
+        border: 1px dashed #ef4444;
+        border-radius: 10px;
+        background: #2b0f13;
+        color: #fecaca;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <a href="index.html" class="back">← Back to Home</a>
+      <h1>Case Detail</h1>
+
+      <div id="errorBox" class="error" style="display: none"></div>
+
+      <div class="grid" id="content" style="display: none">
+        <!-- LEFT: media viewer -->
+        <div class="panel">
+          <div class="title">Media</div>
+          <div id="mediaBox" class="mediaBox">
+            <span class="muted">Loading…</span>
+          </div>
+          <div id="meta" class="meta"></div>
+          <div class="btnRow">
+            <button
+              id="openInNew"
+              class="small ok"
+              title="Open raw media in new tab"
+            >
+              Open Original
+            </button>
+            <button id="deleteCase" class="small danger">Delete Case</button>
+          </div>
+        </div>
+
+        <!-- RIGHT: observations -->
+        <div class="panel">
+          <div class="title">Add clinical observations</div>
+
+          <div class="two">
+            <div>
+              <label>Clicks at Opening / Closing</label>
+              <input
+                id="obsClicks"
+                type="number"
+                min="0"
+                step="1"
+                placeholder="e.g., 2"
+              />
+            </div>
+            <div>
+              <label>Central incisors width (mm)</label>
+              <input
+                id="obsWidth"
+                type="number"
+                min="0"
+                step="0.1"
+                placeholder="e.g., 8.5"
+              />
+            </div>
+          </div>
+
+          <label style="margin-top: 12px">Click sound</label>
+          <div class="seg" role="radiogroup" aria-label="Click sound">
+            <input type="radio" id="soundNone" name="sound" value="none" />
+            <label for="soundNone">None</label>
+            <input type="radio" id="soundClear" name="sound" value="clear" />
+            <label for="soundClear">Clear</label>
+            <input
+              type="radio"
+              id="soundDiscreet"
+              name="sound"
+              value="discreet"
+            />
+            <label for="soundDiscreet">Discreet</label>
+          </div>
+
+          <label style="margin-top: 12px">Notes</label>
+          <textarea
+            id="obsNotes"
+            placeholder="Add any additional observations..."
+          ></textarea>
+
+          <div class="btnRow">
+            <button id="saveObs" class="ok">Save observations</button>
+            <span id="saveMsg" class="saved"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ---- config ----
+      const LS_KEY_CASES = "tmj.cases";
+
+      // tiny helpers
+      const $ = (id) => document.getElementById(id);
+      const getParam = (k) => new URL(location.href).searchParams.get(k);
+
+      const content = $("content");
+      const errorBox = $("errorBox");
+      const mediaBox = $("mediaBox");
+      const meta = $("meta");
+      const btnOpen = $("openInNew");
+      const btnDelete = $("deleteCase");
+      const btnSave = $("saveObs");
+      const saveMsg = $("saveMsg");
+      const clicksEl = $("obsClicks");
+      const widthEl = $("obsWidth");
+      const notesEl = $("obsNotes");
+      const soundEls = {
+        none: $("soundNone"),
+        clear: $("soundClear"),
+        discreet: $("soundDiscreet"),
+      };
+
+      function getSound() {
+        return soundEls.none.checked
+          ? "none"
+          : soundEls.clear.checked
+          ? "clear"
+          : soundEls.discreet.checked
+          ? "discreet"
+          : null;
+      }
+      function setSound(v) {
+        (soundEls[v] || soundEls.none).checked = true;
+      }
+
+      const id = getParam("id");
+
+      function showError(msg) {
+        errorBox.style.display = "block";
+        errorBox.textContent = msg + " — ";
+        const a = document.createElement("a");
+        a.href = "index.html";
+        a.textContent = "Back to Home";
+        a.style.color = "#fecaca";
+        errorBox.appendChild(a);
+      }
+
+      // Load & render
+      let current = null,
+        list = [];
+      (function init() {
+        if (!id) {
+          showError("Missing case id");
+          return;
+        }
+
+        try {
+          list = JSON.parse(localStorage.getItem(LS_KEY_CASES) || "[]");
+        } catch {
+          list = [];
+        }
+        current = list.find((c) => c.id === id);
+        if (!current) {
+          showError("Case not found in this browser's storage");
+          return;
+        }
+
+        // render visible now that we have data
+        content.style.display = "grid";
+        errorBox.style.display = "none";
+
+        mediaBox.innerHTML = "";
+        if (current.kind === "photo") {
+          const img = document.createElement("img");
+          img.src = current.media;
+          img.alt = "Case photo";
+          img.style.cursor = "zoom-in";
+          img.onclick = () => img.requestFullscreen?.();
+          mediaBox.appendChild(img);
+        } else {
+          const vid = document.createElement("video");
+          vid.src = current.media;
+          vid.controls = true;
+          vid.playsInline = true;
+          vid.style.background = "#000";
+          mediaBox.appendChild(vid);
+        }
+
+        meta.textContent = `${current.patient?.name || "Unnamed"} — ${
+          current.kind === "photo" ? "Photo" : "Video"
+        } • ${new Date(current.ts).toLocaleString()} • Age ${
+          current.patient?.age || "-"
+        } • Date ${current.patient?.date || "-"}`;
+
+        if (current.observations) {
+          clicksEl.value = current.observations.clicks ?? "";
+          widthEl.value = current.observations.incisorsWidthMm ?? "";
+          notesEl.value = current.observations.notes ?? "";
+          setSound(current.observations.clickSound || "none");
+        } else {
+          setSound("none");
+        }
+
+        btnOpen.onclick = () => window.open(current.media, "_blank");
+        btnDelete.onclick = () => {
+          if (!confirm("Delete this case?")) return;
+          const newList = list.filter((c) => c.id !== id);
+          localStorage.setItem(LS_KEY_CASES, JSON.stringify(newList));
+          location.href = "index.html";
+        };
+      })();
+
+      // Save observations
+      btnSave.onclick = () => {
+        if (!current) {
+          return;
+        }
+        const idx = list.findIndex((c) => c.id === id);
+        if (idx === -1) {
+          return;
+        }
+
+        const obs = {
+          clicks: clicksEl.value ? Number(clicksEl.value) : null,
+          clickSound: getSound(),
+          notes: (notesEl.value || "").trim(),
+          incisorsWidthMm: widthEl.value ? Number(widthEl.value) : null,
+        };
+        list[idx].observations = obs;
+        localStorage.setItem(LS_KEY_CASES, JSON.stringify(list));
+
+        saveMsg.textContent = "Saved.";
+        setTimeout(() => (saveMsg.textContent = ""), 1500);
+      };
+    </script>
+  </body>
+</html>

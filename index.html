@@ -3,175 +3,398 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Mouth Video Capture</title>
+    <title>TMJ App – Prototype</title>
     <style>
+      :root {
+        --bg: #0f1115;
+        --panel: #181b22;
+        --muted: #9aa3af;
+        --text: #e5e7eb;
+        --accent: #6ee7b7;
+        --accent2: #93c5fd;
+        --warn: #fbbf24;
+        --ready: #60a5fa;
+        --btn: #2a2f3a;
+        --border: #232835;
+      }
+      html,
       body {
-        font-family: system-ui, sans-serif;
-        margin: 20px;
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Helvetica,
+          Arial;
+      }
+      .wrap {
+        max-width: 980px;
+        margin: 28px auto;
+        padding: 0 16px;
+      }
+      h1 {
+        font-size: 34px;
+        margin: 0 0 14px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+      @media (min-width: 860px) {
+        .grid {
+          grid-template-columns: 320px 1fr;
+        }
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 16px;
+      }
+      .title {
+        font-size: 18px;
+        margin: 0 0 10px;
+      }
+      label {
+        display: block;
+        font-size: 13px;
+        color: var(--muted);
+        margin: 8px 0 6px;
+      }
+      input,
+      button,
+      select {
+        background: var(--btn);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 12px;
+      }
+      input,
+      select {
+        width: 100%;
+      }
+      button {
+        cursor: pointer;
+      }
+      button.primary {
+        background: #1f2937;
+        border-color: #2b3342;
       }
       .row {
         display: flex;
-        gap: 24px;
+        gap: 10px;
         flex-wrap: wrap;
       }
-      .panel {
-        border: 1px solid #eee;
-        border-radius: 10px;
-        padding: 16px;
-        max-width: 420px;
+      .quick a {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #151821;
+        border: 1px solid var(--border);
+        padding: 14px 16px;
+        border-radius: 12px;
+        color: var(--text);
+        text-decoration: none;
       }
-      video {
-        width: 100%;
+      .quick a .hint {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .quick a:hover {
+        border-color: #2b3342;
+      }
+      .badge {
+        font-size: 12px;
+        padding: 5px 8px;
+        border-radius: 999px;
+      }
+      .await {
+        background: #3a2e11;
+        color: #facc15;
+      }
+      .ready {
+        background: #12243d;
+        color: #93c5fd;
+      }
+      .list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .case {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        background: #141820;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 10px;
+      }
+      .thumb {
+        width: 60px;
+        height: 60px;
         background: #000;
         border-radius: 8px;
+        object-fit: cover;
       }
-      button {
-        padding: 10px 14px;
-        border-radius: 8px;
-        border: 1px solid #ddd;
-        cursor: pointer;
+      .kvs {
+        display: flex;
+        gap: 10px;
+        margin-top: 8px;
       }
-      button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
+      .muted {
+        color: var(--muted);
       }
-      .hint {
-        color: #666;
-        font-size: 14px;
+      .status {
+        margin-left: auto;
+      }
+      .note {
+        color: var(--muted);
+        font-size: 12px;
         margin-top: 6px;
+      }
+      .sep {
+        height: 1px;
+        background: var(--border);
+        margin: 14px 0;
       }
     </style>
   </head>
   <body>
-    <h1>Mouth Video Capture (Prototype)</h1>
+    <div class="wrap">
+      <h1>Home</h1>
 
-    <div class="row">
-      <div class="panel">
-        <h2>Record from camera</h2>
-        <video id="preview" playsinline autoplay muted></video>
-        <div
-          style="
-            margin-top: 10px;
-            display: flex;
-            gap: 10px;
-            align-items: center;
-          "
-        >
-          <button id="startBtn">Start</button>
-          <button id="stopBtn" disabled>Stop</button>
-          <span id="timer">00:00</span>
+      <div class="grid">
+        <!-- LEFT: Patient + Quick access -->
+        <div class="panel">
+          <div class="title">Patient</div>
+          <label>Full name</label>
+          <input id="pName" placeholder="e.g., John D." />
+          <label>Age</label>
+          <input
+            id="pAge"
+            type="number"
+            min="0"
+            max="120"
+            placeholder="e.g., 29"
+          />
+          <label>Date</label>
+          <input id="pDate" type="date" />
+          <div class="row" style="margin-top: 10px">
+            <button id="savePatient" class="primary">Save patient info</button>
+            <span id="saveMsg" class="note"></span>
+          </div>
+
+          <div class="sep"></div>
+          <div class="title" style="margin-top: 4px">Quick access</div>
+          <div class="quick" id="quick">
+            <a href="#" id="newPhoto"
+              ><span>New Photo</span><span class="hint">open camera</span></a
+            >
+            <a href="#" id="newVideo"
+              ><span>New Video</span><span class="hint">open camera</span></a
+            >
+            <a href="#" id="uploadPhoto"
+              ><span>Upload Photo</span><span class="hint">choose file</span></a
+            >
+            <a href="#" id="uploadVideo"
+              ><span>Upload Video</span><span class="hint">choose file</span></a
+            >
+          </div>
+          <input
+            id="photoPicker"
+            type="file"
+            accept="image/*"
+            capture="environment"
+            style="display: none"
+          />
+          <input
+            id="videoPicker"
+            type="file"
+            accept="video/*"
+            capture="environment"
+            style="display: none"
+          />
+          <input
+            id="photoUpload"
+            type="file"
+            accept="image/*"
+            style="display: none"
+          />
+          <input
+            id="videoUpload"
+            type="file"
+            accept="video/*"
+            style="display: none"
+          />
+          <div class="note">
+            On mobile, the camera requires HTTPS (GitHub Pages is fine).
+          </div>
         </div>
-        <div id="downloadRow" style="margin-top: 10px"></div>
-        <div class="hint">Needs HTTPS on mobile for camera access.</div>
-      </div>
 
-      <div class="panel">
-        <h2>Upload an existing video</h2>
-        <input id="fileInput" type="file" accept="video/*" />
-        <video id="playback" controls style="margin-top: 10px"></video>
-        <div id="pickedInfo" class="hint"></div>
+        <!-- RIGHT: Recent cases + Messages -->
+        <div class="panel">
+          <div class="title">Recent patient cases</div>
+          <div id="caseList" class="list"></div>
+
+          <div class="sep"></div>
+          <div class="title">Status messages</div>
+          <div id="messages" class="note">Ready.</div>
+        </div>
       </div>
     </div>
 
     <script>
-      const preview = document.getElementById("preview");
-      const startBtn = document.getElementById("startBtn");
-      const stopBtn = document.getElementById("stopBtn");
-      const timerEl = document.getElementById("timer");
-      const dlRow = document.getElementById("downloadRow");
-      let stream = null,
-        rec = null,
-        chunks = [],
-        t0 = 0,
-        timer = null;
+      // --- simple storage ---
+      const LS_KEY_PAT = "tmj.patient";
+      const LS_KEY_CASES = "tmj.cases";
 
-      function fmt(n) {
-        return String(n).padStart(2, "0");
-      }
-      function startTimer() {
-        t0 = Date.now();
-        timer = setInterval(() => {
-          const s = Math.floor((Date.now() - t0) / 1000);
-          timerEl.textContent = `${fmt((s / 60) | 0)}:${fmt(s % 60)}`;
-        }, 200);
-      }
-      function stopTimer() {
-        clearInterval(timer);
-        timer = null;
+      const pName = document.getElementById("pName");
+      const pAge = document.getElementById("pAge");
+      const pDate = document.getElementById("pDate");
+      const saveBtn = document.getElementById("savePatient");
+      const saveMsg = document.getElementById("saveMsg");
+      const caseList = document.getElementById("caseList");
+      const messages = document.getElementById("messages");
+
+      // load patient defaults
+      (function () {
+        const p = JSON.parse(localStorage.getItem(LS_KEY_PAT) || "{}");
+        if (p.name) pName.value = p.name;
+        if (p.age) pAge.value = p.age;
+        pDate.value = p.date || new Date().toISOString().slice(0, 10);
+        renderCases();
+      })();
+
+      saveBtn.onclick = () => {
+        const obj = {
+          name: pName.value.trim(),
+          age: pAge.value.trim(),
+          date: pDate.value,
+        };
+        localStorage.setItem(LS_KEY_PAT, JSON.stringify(obj));
+        saveMsg.textContent = "Saved.";
+        setTimeout(() => (saveMsg.textContent = ""), 1500);
+      };
+
+      // --- quick access handlers ---
+      const photoPicker = document.getElementById("photoPicker");
+      const videoPicker = document.getElementById("videoPicker");
+      const photoUpload = document.getElementById("photoUpload");
+      const videoUpload = document.getElementById("videoUpload");
+
+      document.getElementById("newPhoto").onclick = (e) => {
+        e.preventDefault();
+        photoPicker.click();
+      };
+      document.getElementById("newVideo").onclick = (e) => {
+        e.preventDefault();
+        videoPicker.click();
+      };
+      document.getElementById("uploadPhoto").onclick = (e) => {
+        e.preventDefault();
+        photoUpload.click();
+      };
+      document.getElementById("uploadVideo").onclick = (e) => {
+        e.preventDefault();
+        videoUpload.click();
+      };
+
+      photoPicker.onchange = async () => {
+        const f = photoPicker.files?.[0];
+        if (!f) return;
+        await addCase("photo", f, /*captured*/ true);
+      };
+      videoPicker.onchange = async () => {
+        const f = videoPicker.files?.[0];
+        if (!f) return;
+        await addCase("video", f, true);
+      };
+      photoUpload.onchange = async () => {
+        const f = photoUpload.files?.[0];
+        if (!f) return;
+        await addCase("photo", f, false);
+      };
+      videoUpload.onchange = async () => {
+        const f = videoUpload.files?.[0];
+        if (!f) return;
+        await addCase("video", f, false);
+      };
+
+      async function addCase(kind, file, captured) {
+        const pat = JSON.parse(localStorage.getItem(LS_KEY_PAT) || "{}");
+        const reader = new FileReader();
+        reader.onload = () => {
+          const url = reader.result; // data URL
+          const id = Date.now().toString();
+          const rec = {
+            id,
+            kind,
+            captured,
+            ts: new Date().toISOString(),
+            patient: pat, // snapshot of patient info at the time
+            status: "Awaiting Analysis",
+            thumb: kind === "photo" ? url : null, // for videos we’ll create thumb lazily
+            media: url, // in MVP we keep data URL; later upload to backend
+          };
+          const list = JSON.parse(localStorage.getItem(LS_KEY_CASES) || "[]");
+          list.unshift(rec);
+          localStorage.setItem(LS_KEY_CASES, JSON.stringify(list));
+          messages.textContent = `${
+            kind === "photo" ? "Photo" : "Video"
+          } added for ${pat.name || "patient"}.`;
+          renderCases();
+        };
+        reader.readAsDataURL(file);
       }
 
-      async function ensureCamera() {
-        if (stream) return;
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: false,
-          video: {
-            facingMode: "environment",
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
-        });
-        preview.srcObject = stream;
-      }
-
-      startBtn.onclick = async () => {
-        try {
-          await ensureCamera();
-        } catch (e) {
-          alert("Camera error: " + e.message);
+      function renderCases() {
+        const list = JSON.parse(localStorage.getItem(LS_KEY_CASES) || "[]");
+        caseList.innerHTML = "";
+        if (!list.length) {
+          caseList.innerHTML = '<div class="note">No cases yet.</div>';
           return;
         }
-        chunks = [];
-        let mime = "";
-        if (MediaRecorder.isTypeSupported("video/mp4;codecs=h264"))
-          mime = "video/mp4;codecs=h264";
-        else if (MediaRecorder.isTypeSupported("video/webm;codecs=vp9"))
-          mime = "video/webm;codecs=vp9";
-        else if (MediaRecorder.isTypeSupported("video/webm;codecs=vp8"))
-          mime = "video/webm;codecs=vp8";
+        for (const c of list) {
+          const row = document.createElement("div");
+          row.className = "case";
 
-        rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
-        rec.ondataavailable = (e) => {
-          if (e.data && e.data.size) chunks.push(e.data);
-        };
-        rec.onstop = () => {
-          stopTimer();
-          const blob = new Blob(chunks, { type: rec.mimeType || "video/webm" });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          const ext = blob.type.includes("mp4") ? "mp4" : "webm";
-          a.href = url;
-          a.download = `patient_capture_${Date.now()}.${ext}`;
-          a.textContent = "Download recorded video";
-          dlRow.innerHTML = "";
-          dlRow.appendChild(a);
-        };
-        rec.start(100);
-        startBtn.disabled = true;
-        stopBtn.disabled = false;
-        startTimer();
-      };
+          const img = document.createElement(
+            c.kind === "photo" ? "img" : "video"
+          );
+          img.className = "thumb";
+          img.src = c.thumb || c.media;
+          if (c.kind === "video") {
+            img.muted = true;
+            img.loop = true;
+            img.autoplay = true;
+            img.playsInline = true;
+          }
+          row.appendChild(img);
 
-      stopBtn.onclick = () => {
-        if (rec && rec.state === "recording") rec.stop();
-        startBtn.disabled = false;
-        stopBtn.disabled = true;
-      };
+          const meta = document.createElement("div");
+          meta.innerHTML = `
+        <div><strong>${c.patient?.name || "Unnamed"}</strong> — ${
+            c.kind === "photo" ? "Photo" : "Video"
+          }</div>
+        <div class="muted">${new Date(c.ts).toLocaleString()}</div>
+        <div class="kvs">
+          <div class="muted">Age: ${c.patient?.age || "-"}</div>
+          <div class="muted">Date: ${c.patient?.date || "-"}</div>
+        </div>`;
+          row.appendChild(meta);
 
-      // Upload & preview existing file (local preview only for now)
-      const fileInput = document.getElementById("fileInput");
-      const playback = document.getElementById("playback");
-      const pickedInfo = document.getElementById("pickedInfo");
-      fileInput.onchange = () => {
-        const f = fileInput.files?.[0];
-        if (!f) return;
-        const url = URL.createObjectURL(f);
-        playback.src = url;
-        pickedInfo.textContent = `Selected: ${f.name} — ${(
-          f.size /
-          1024 /
-          1024
-        ).toFixed(1)} MB`;
-      };
+          const badge = document.createElement("span");
+          badge.className =
+            "badge " + (c.status.includes("Await") ? "await" : "ready");
+          badge.textContent = c.status;
+          badge.classList.add("status");
+          row.appendChild(badge);
+
+          caseList.appendChild(row);
+        }
+      }
     </script>
   </body>
 </html>

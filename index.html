@@ -16,6 +16,8 @@
         --ready: #60a5fa;
         --btn: #2a2f3a;
         --border: #232835;
+        --danger: #ef4444;
+        --dangerbg: #3b1f23;
       }
       html,
       body {
@@ -55,6 +57,14 @@
         font-size: 18px;
         margin: 0 0 10px;
       }
+      .titleRow {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .titleRow .spacer {
+        flex: 1;
+      }
       label {
         display: block;
         font-size: 13px;
@@ -80,6 +90,16 @@
       button.primary {
         background: #1f2937;
         border-color: #2b3342;
+      }
+      .mini {
+        padding: 6px 10px;
+        border-radius: 8px;
+        font-size: 13px;
+      }
+      .danger {
+        background: var(--dangerbg);
+        border-color: #5a1f27;
+        color: #fecaca;
       }
       .row {
         display: flex;
@@ -148,6 +168,7 @@
       }
       .status {
         margin-left: auto;
+        margin-right: 8px;
       }
       .note {
         color: var(--muted);
@@ -265,7 +286,13 @@
 
         <!-- RIGHT: Recent cases + Messages -->
         <div class="panel">
-          <div class="title">Recent patient cases</div>
+          <div class="titleRow">
+            <div class="title">Recent patient cases</div>
+            <div class="spacer"></div>
+            <button id="clearAll" class="mini danger" title="Delete all cases">
+              Clear all
+            </button>
+          </div>
           <div id="caseList" class="list"></div>
 
           <div class="sep"></div>

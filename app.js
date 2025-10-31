@@ -10,6 +10,7 @@ const saveBtn = document.getElementById("savePatient");
 const saveMsg = document.getElementById("saveMsg");
 const caseList = document.getElementById("caseList");
 const messages = document.getElementById("messages");
+const clearAllBtn = document.getElementById("clearAll");
 
 // hidden pickers (mobile native camera & uploads)
 const photoPicker = document.getElementById("photoPicker");
@@ -85,6 +86,25 @@ async function addCase(kind, file, captured) {
   reader.readAsDataURL(file);
 }
 
+// ---------- delete helpers ----------
+function deleteCase(id) {
+  const list = JSON.parse(localStorage.getItem(LS_KEY_CASES) || "[]");
+  const newList = list.filter((c) => c.id !== id);
+  localStorage.setItem(LS_KEY_CASES, JSON.stringify(newList));
+  messages.textContent = "Case deleted.";
+  renderCases();
+}
+
+clearAllBtn.onclick = () => {
+  const list = JSON.parse(localStorage.getItem(LS_KEY_CASES) || "[]");
+  if (!list.length) return;
+  if (confirm(`Delete all ${list.length} case(s)? This cannot be undone.`)) {
+    localStorage.removeItem(LS_KEY_CASES);
+    messages.textContent = "All cases deleted.";
+    renderCases();
+  }
+};
+
 // ---------- render recent cases ----------
 function renderCases() {
   const list = JSON.parse(localStorage.getItem(LS_KEY_CASES) || "[]");
@@ -128,6 +148,15 @@ function renderCases() {
     badge.textContent = c.status;
     badge.classList.add("status");
     row.appendChild(badge);
+
+    const del = document.createElement("button");
+    del.className = "mini danger";
+    del.textContent = "Delete";
+    del.title = "Delete this case";
+    del.onclick = () => {
+      if (confirm("Delete this case?")) deleteCase(c.id);
+    };
+    row.appendChild(del);
 
     caseList.appendChild(row);
   }

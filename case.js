@@ -6,7 +6,7 @@ const qs = (id) => document.getElementById(id);
 const getParam = (k) => new URL(window.location.href).searchParams.get(k);
 
 // --- backend endpoint (replace with your deployed FastAPI URL) ---
-const BACKEND = "https://YOUR_BACKEND_URL/analyze";
+const BACKEND = "http://127.0.0.1:8000/analyze"; // or https://YOUR_BACKEND_URL/analyze
 
 // --- DOM refs ---
 const runBtn = qs("runAnalysis");
@@ -21,27 +21,48 @@ const btnDelete = qs("deleteCase");
 const btnSave = qs("saveObs");
 const saveMsg = qs("saveMsg");
 
-const clicksEl = qs("obsClicks");
+const clicksLeftEl = qs("obsClicksLeft");
+const clicksRightEl = qs("obsClicksRight");
+const clicksBothEl = qs("obsClicksBoth");
 const widthEl = qs("obsWidth");
 const notesEl = qs("obsNotes");
 
-// radio group helpers
+// radio group helpers (per side)
 const soundRadios = {
-  none: qs("soundNone"),
-  clear: qs("soundClear"),
-  discreet: qs("soundDiscreet"),
+  left: {
+    none: qs("soundLeftNone"),
+    clear: qs("soundLeftClear"),
+    discreet: qs("soundLeftDiscreet"),
+  },
+  right: {
+    none: qs("soundRightNone"),
+    clear: qs("soundRightClear"),
+    discreet: qs("soundRightDiscreet"),
+  },
+  both: {
+    none: qs("soundBothNone"),
+    clear: qs("soundBothClear"),
+    discreet: qs("soundBothDiscreet"),
+  },
 };
-function getSound() {
-  return soundRadios.none.checked
+
+function getSound(side) {
+  const g = soundRadios[side];
+  if (!g) return null;
+  return g.none.checked
     ? "none"
-    : soundRadios.clear.checked
+    : g.clear.checked
     ? "clear"
-    : soundRadios.discreet.checked
+    : g.discreet.checked
     ? "discreet"
     : null;
 }
-function setSound(v) {
-  (soundRadios[v] || soundRadios.none).checked = true;
+
+function setSound(side, value) {
+  const g = soundRadios[side];
+  if (!g) return;
+  const v = value || "none";
+  (g[v] || g.none).checked = true;
 }
 
 // ------- load case -------
@@ -94,14 +115,27 @@ let list = [];
     current.patient?.age || "-"
   } • Date ${current.patient?.date || "-"}`;
 
-  // Fill observations if present
+  // Fill observations if present (with backward compatibility)
   if (current.observations) {
-    clicksEl.value = current.observations.clicks ?? "";
-    widthEl.value = current.observations.incisorsWidthMm ?? "";
-    notesEl.value = current.observations.notes ?? "";
-    setSound(current.observations.clickSound || "none");
+    const o = current.observations;
+
+    // clicks
+    clicksLeftEl.value = o.clicksLeft ?? "";
+    clicksRightEl.value = o.clicksRight ?? "";
+    clicksBothEl.value = o.clicksBoth ?? (o.clicks != null ? o.clicks : ""); // legacy `clicks`
+
+    // width + notes
+    widthEl.value = o.incisorsWidthMm ?? "";
+    notesEl.value = o.notes ?? "";
+
+    // sounds (prefer per-side, fall back to old clickSound)
+    setSound("left", o.soundLeft || o.clickSound || "none");
+    setSound("right", o.soundRight || o.clickSound || "none");
+    setSound("both", o.soundBoth || o.clickSound || "none");
   } else {
-    setSound("none");
+    setSound("left", "none");
+    setSound("right", "none");
+    setSound("both", "none");
   }
 
   // Delete case
@@ -120,8 +154,14 @@ btnSave.onclick = () => {
   if (idx === -1) return;
 
   const obs = {
-    clicks: clicksEl.value ? Number(clicksEl.value) : null,
-    clickSound: getSound(),
+    clicksLeft: clicksLeftEl.value ? Number(clicksLeftEl.value) : null,
+    clicksRight: clicksRightEl.value ? Number(clicksRightEl.value) : null,
+    clicksBoth: clicksBothEl.value ? Number(clicksBothEl.value) : null,
+
+    soundLeft: getSound("left"),
+    soundRight: getSound("right"),
+    soundBoth: getSound("both"),
+
     notes: (notesEl.value || "").trim(),
     incisorsWidthMm: widthEl.value ? Number(widthEl.value) : null,
   };

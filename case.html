@@ -80,6 +80,7 @@
       .seg {
         display: flex;
         gap: 8px;
+        flex-wrap: wrap;
       }
       .seg input {
         display: none;
@@ -141,11 +142,6 @@
         padding: 6px 10px;
         width: auto;
       }
-      .two {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-      }
       .saved {
         font-size: 12px;
         color: var(--muted);
@@ -157,6 +153,36 @@
         border-radius: 10px;
         background: #2b0f13;
         color: #fecaca;
+      }
+
+      /* NEW: clicks layout */
+      .threeCols {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-top: 6px;
+        margin-bottom: 16px;
+      }
+      .clickBox {
+        background: #141820;
+        border: 1px solid var(--border);
+        padding: 12px;
+        border-radius: 12px;
+      }
+      .subHeader {
+        font-weight: 600;
+        margin-bottom: 6px;
+        font-size: 13px;
+        color: #e5e7eb;
+      }
+      .subLabel {
+        font-size: 12px;
+        color: var(--muted);
+        margin: 6px 0 4px;
+      }
+      .smallSeg label {
+        padding: 4px 8px;
+        font-size: 11px;
       }
     </style>
   </head>
@@ -203,51 +229,141 @@
         <!-- RIGHT: observations -->
         <div class="panel">
           <div class="title">Add clinical observations</div>
-          <div class="two">
-            <div>
-              <label>Clicks at Opening / Closing</label>
+
+          <!-- Clicks + sounds per side -->
+          <div class="title" style="margin-top: 4px; margin-bottom: 4px">
+            Clicks at Opening / Closing
+          </div>
+          <div class="threeCols">
+            <!-- LEFT -->
+            <div class="clickBox">
+              <div class="subHeader">Left</div>
+              <label class="subLabel">Clicks</label>
               <input
-                id="obsClicks"
+                id="obsClicksLeft"
                 type="number"
                 min="0"
                 step="1"
-                placeholder="e.g., 2"
+                placeholder="0"
               />
+
+              <label class="subLabel">Sound</label>
+              <div
+                class="seg smallSeg"
+                role="radiogroup"
+                aria-label="Click sound left"
+              >
+                <input
+                  type="radio"
+                  id="soundLeftNone"
+                  name="soundLeft"
+                  value="none"
+                /><label for="soundLeftNone">None</label>
+                <input
+                  type="radio"
+                  id="soundLeftClear"
+                  name="soundLeft"
+                  value="clear"
+                /><label for="soundLeftClear">Clear</label>
+                <input
+                  type="radio"
+                  id="soundLeftDiscreet"
+                  name="soundLeft"
+                  value="discreet"
+                /><label for="soundLeftDiscreet">Discreet</label>
+              </div>
             </div>
-            <div>
-              <label>Central incisors width (mm)</label>
+
+            <!-- RIGHT -->
+            <div class="clickBox">
+              <div class="subHeader">Right</div>
+              <label class="subLabel">Clicks</label>
               <input
-                id="obsWidth"
+                id="obsClicksRight"
                 type="number"
                 min="0"
-                step="0.1"
-                placeholder="e.g., 8.5"
+                step="1"
+                placeholder="0"
               />
+
+              <label class="subLabel">Sound</label>
+              <div
+                class="seg smallSeg"
+                role="radiogroup"
+                aria-label="Click sound right"
+              >
+                <input
+                  type="radio"
+                  id="soundRightNone"
+                  name="soundRight"
+                  value="none"
+                /><label for="soundRightNone">None</label>
+                <input
+                  type="radio"
+                  id="soundRightClear"
+                  name="soundRight"
+                  value="clear"
+                /><label for="soundRightClear">Clear</label>
+                <input
+                  type="radio"
+                  id="soundRightDiscreet"
+                  name="soundRight"
+                  value="discreet"
+                /><label for="soundRightDiscreet">Discreet</label>
+              </div>
+            </div>
+
+            <!-- BOTH -->
+            <div class="clickBox">
+              <div class="subHeader">Both</div>
+              <label class="subLabel">Clicks</label>
+              <input
+                id="obsClicksBoth"
+                type="number"
+                min="0"
+                step="1"
+                placeholder="0"
+              />
+
+              <label class="subLabel">Sound</label>
+              <div
+                class="seg smallSeg"
+                role="radiogroup"
+                aria-label="Click sound both"
+              >
+                <input
+                  type="radio"
+                  id="soundBothNone"
+                  name="soundBoth"
+                  value="none"
+                /><label for="soundBothNone">None</label>
+                <input
+                  type="radio"
+                  id="soundBothClear"
+                  name="soundBoth"
+                  value="clear"
+                /><label for="soundBothClear">Clear</label>
+                <input
+                  type="radio"
+                  id="soundBothDiscreet"
+                  name="soundBoth"
+                  value="discreet"
+                /><label for="soundBothDiscreet">Discreet</label>
+              </div>
             </div>
           </div>
 
-          <label style="margin-top: 12px">Click sound</label>
-          <div class="seg" role="radiogroup" aria-label="Click sound">
-            <input
-              type="radio"
-              id="soundNone"
-              name="sound"
-              value="none"
-            /><label for="soundNone">None</label>
-            <input
-              type="radio"
-              id="soundClear"
-              name="sound"
-              value="clear"
-            /><label for="soundClear">Clear</label>
-            <input
-              type="radio"
-              id="soundDiscreet"
-              name="sound"
-              value="discreet"
-            /><label for="soundDiscreet">Discreet</label>
-          </div>
+          <!-- Central incisors width -->
+          <label>Central incisors width (mm)</label>
+          <input
+            id="obsWidth"
+            type="number"
+            min="0"
+            step="0.1"
+            placeholder="e.g., 8.5"
+          />
 
+          <!-- Notes -->
           <label style="margin-top: 12px">Notes</label>
           <textarea
             id="obsNotes"
@@ -264,7 +380,7 @@
 
     <script>
       // ------------ config / helpers ------------
-      const BACKEND = "https://YOUR_BACKEND_URL/analyze"; // <-- put your FastAPI /analyze URL
+      const BACKEND = "http://127.0.0.1:8000/analyze"; // change to your deployed URL later
       const LS_KEY_CASES = "tmj.cases";
       const $ = (id) => document.getElementById(id);
       const getParam = (k) => new URL(location.href).searchParams.get(k);
@@ -282,28 +398,51 @@
       const btnDelete = $("deleteCase"),
         btnSave = $("saveObs"),
         saveMsg = $("saveMsg");
-      const clicksEl = $("obsClicks"),
+
+      const clicksLeftEl = $("obsClicksLeft"),
+        clicksRightEl = $("obsClicksRight"),
+        clicksBothEl = $("obsClicksBoth"),
         widthEl = $("obsWidth"),
         notesEl = $("obsNotes");
+
+      // sound radio buttons grouped by side
       const soundEls = {
-        none: $("soundNone"),
-        clear: $("soundClear"),
-        discreet: $("soundDiscreet"),
+        left: {
+          none: $("soundLeftNone"),
+          clear: $("soundLeftClear"),
+          discreet: $("soundLeftDiscreet"),
+        },
+        right: {
+          none: $("soundRightNone"),
+          clear: $("soundRightClear"),
+          discreet: $("soundRightDiscreet"),
+        },
+        both: {
+          none: $("soundBothNone"),
+          clear: $("soundBothClear"),
+          discreet: $("soundBothDiscreet"),
+        },
       };
 
       const id = getParam("id");
 
-      function getSound() {
-        return soundEls.none.checked
+      function getSound(side) {
+        const group = soundEls[side];
+        if (!group) return null;
+        return group.none.checked
           ? "none"
-          : soundEls.clear.checked
+          : group.clear.checked
           ? "clear"
-          : soundEls.discreet.checked
+          : group.discreet.checked
           ? "discreet"
           : null;
       }
-      function setSound(v) {
-        (soundEls[v] || soundEls.none).checked = true;
+
+      function setSound(side, value) {
+        const group = soundEls[side];
+        if (!group) return;
+        const v = value || "none";
+        (group[v] || group.none).checked = true;
       }
 
       function showError(msg) {
@@ -364,13 +503,24 @@
           current.patient?.age || "-"
         } • Date ${current.patient?.date || "-"}`;
 
+        // Load observations (with backward compatibility)
         if (current.observations) {
-          clicksEl.value = current.observations.clicks ?? "";
-          widthEl.value = current.observations.incisorsWidthMm ?? "";
-          notesEl.value = current.observations.notes ?? "";
-          setSound(current.observations.clickSound || "none");
+          const o = current.observations;
+          clicksLeftEl.value = o.clicksLeft ?? "";
+          clicksRightEl.value = o.clicksRight ?? "";
+          clicksBothEl.value =
+            o.clicksBoth ?? (o.clicks != null ? o.clicks : ""); // old single "clicks" field
+
+          widthEl.value = o.incisorsWidthMm ?? "";
+          notesEl.value = o.notes ?? "";
+
+          setSound("left", o.soundLeft || o.clickSound || "none");
+          setSound("right", o.soundRight || o.clickSound || "none");
+          setSound("both", o.soundBoth || o.clickSound || "none");
         } else {
-          setSound("none");
+          setSound("left", "none");
+          setSound("right", "none");
+          setSound("both", "none");
         }
 
         btnDelete.onclick = () => {
@@ -389,11 +539,18 @@
         if (idx === -1) return;
 
         listNow[idx].observations = {
-          clicks: clicksEl.value ? Number(clicksEl.value) : null,
-          clickSound: getSound(),
+          clicksLeft: clicksLeftEl.value ? Number(clicksLeftEl.value) : null,
+          clicksRight: clicksRightEl.value ? Number(clicksRightEl.value) : null,
+          clicksBoth: clicksBothEl.value ? Number(clicksBothEl.value) : null,
+
+          soundLeft: getSound("left"),
+          soundRight: getSound("right"),
+          soundBoth: getSound("both"),
+
           notes: (notesEl.value || "").trim(),
           incisorsWidthMm: widthEl.value ? Number(widthEl.value) : null,
         };
+
         localStorage.setItem(LS_KEY_CASES, JSON.stringify(listNow));
         saveMsg.textContent = "Saved.";
         setTimeout(() => (saveMsg.textContent = ""), 1500);

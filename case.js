@@ -6,7 +6,7 @@ const qs = (id) => document.getElementById(id);
 const getParam = (k) => new URL(window.location.href).searchParams.get(k);
 
 // --- backend endpoint (replace with your deployed FastAPI URL) ---
-const BACKEND = "http://127.0.0.1:8000/analyze"; // or https://YOUR_BACKEND_URL/analyze
+const BACKEND = "https://alinacldpr-tmj-app-backend.hf.space/analyze";
 
 // --- DOM refs ---
 const runBtn = qs("runAnalysis");

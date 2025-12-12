@@ -155,7 +155,6 @@
         color: #fecaca;
       }
 
-      /* NEW: clicks layout */
       .threeCols {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -186,6 +185,7 @@
       }
     </style>
   </head>
+
   <body>
     <div class="wrap">
       <a href="index.html" class="back">← Back to Home</a>
@@ -206,12 +206,17 @@
             <button id="runAnalysis" class="small ok" style="display: none">
               Analyze case
             </button>
+
+            <button id="btnCalibrate" class="small ok" style="display: none">
+              Calibrate
+            </button>
+            <span id="calibMsg" class="saved"></span>
+
             <span id="anMsg" class="saved"></span>
             <div style="flex: 1"></div>
             <button id="deleteCase" class="small danger">Delete Case</button>
           </div>
 
-          <!-- Analysis results -->
           <div
             id="analysisBlock"
             class="panel"
@@ -230,12 +235,11 @@
         <div class="panel">
           <div class="title">Add clinical observations</div>
 
-          <!-- Clicks + sounds per side -->
           <div class="title" style="margin-top: 4px; margin-bottom: 4px">
             Clicks at Opening / Closing
           </div>
+
           <div class="threeCols">
-            <!-- LEFT -->
             <div class="clickBox">
               <div class="subHeader">Left</div>
               <label class="subLabel">Clicks</label>
@@ -246,7 +250,6 @@
                 step="1"
                 placeholder="0"
               />
-
               <label class="subLabel">Sound</label>
               <div
                 class="seg smallSeg"
@@ -274,7 +277,6 @@
               </div>
             </div>
 
-            <!-- RIGHT -->
             <div class="clickBox">
               <div class="subHeader">Right</div>
               <label class="subLabel">Clicks</label>
@@ -285,7 +287,6 @@
                 step="1"
                 placeholder="0"
               />
-
               <label class="subLabel">Sound</label>
               <div
                 class="seg smallSeg"
@@ -313,7 +314,6 @@
               </div>
             </div>
 
-            <!-- BOTH -->
             <div class="clickBox">
               <div class="subHeader">Both</div>
               <label class="subLabel">Clicks</label>
@@ -324,7 +324,6 @@
                 step="1"
                 placeholder="0"
               />
-
               <label class="subLabel">Sound</label>
               <div
                 class="seg smallSeg"
@@ -353,7 +352,6 @@
             </div>
           </div>
 
-          <!-- Central incisors width -->
           <label>Central incisors width (mm)</label>
           <input
             id="obsWidth"
@@ -363,7 +361,6 @@
             placeholder="e.g., 8.5"
           />
 
-          <!-- Notes -->
           <label style="margin-top: 12px">Notes</label>
           <textarea
             id="obsNotes"
@@ -378,260 +375,7 @@
       </div>
     </div>
 
-    <script>
-      // ------------ config / helpers ------------
-      const BACKEND = "https://alinacldpr-tmj-app-backend.hf.space/analyze";
-      const LS_KEY_CASES = "tmj.cases";
-      const $ = (id) => document.getElementById(id);
-      const getParam = (k) => new URL(location.href).searchParams.get(k);
-
-      // DOM refs
-      const content = $("content"),
-        errorBox = $("errorBox");
-      const mediaBox = $("mediaBox"),
-        meta = $("meta");
-      const runBtn = $("runAnalysis"),
-        anMsg = $("anMsg");
-      const anBlock = $("analysisBlock"),
-        anNums = $("anNums"),
-        anGrid = $("anGrid");
-      const btnDelete = $("deleteCase"),
-        btnSave = $("saveObs"),
-        saveMsg = $("saveMsg");
-
-      const clicksLeftEl = $("obsClicksLeft"),
-        clicksRightEl = $("obsClicksRight"),
-        clicksBothEl = $("obsClicksBoth"),
-        widthEl = $("obsWidth"),
-        notesEl = $("obsNotes");
-
-      // sound radio buttons grouped by side
-      const soundEls = {
-        left: {
-          none: $("soundLeftNone"),
-          clear: $("soundLeftClear"),
-          discreet: $("soundLeftDiscreet"),
-        },
-        right: {
-          none: $("soundRightNone"),
-          clear: $("soundRightClear"),
-          discreet: $("soundRightDiscreet"),
-        },
-        both: {
-          none: $("soundBothNone"),
-          clear: $("soundBothClear"),
-          discreet: $("soundBothDiscreet"),
-        },
-      };
-
-      const id = getParam("id");
-
-      function getSound(side) {
-        const group = soundEls[side];
-        if (!group) return null;
-        return group.none.checked
-          ? "none"
-          : group.clear.checked
-          ? "clear"
-          : group.discreet.checked
-          ? "discreet"
-          : null;
-      }
-
-      function setSound(side, value) {
-        const group = soundEls[side];
-        if (!group) return;
-        const v = value || "none";
-        (group[v] || group.none).checked = true;
-      }
-
-      function showError(msg) {
-        errorBox.style.display = "block";
-        errorBox.textContent = msg + " — ";
-        const a = document.createElement("a");
-        a.href = "index.html";
-        a.textContent = "Back to Home";
-        a.style.color = "#fecaca";
-        errorBox.appendChild(a);
-      }
-
-      // ------------ load case ------------
-      let current = null,
-        list = [];
-      (function init() {
-        if (!id) {
-          showError("Missing case id");
-          return;
-        }
-
-        try {
-          list = JSON.parse(localStorage.getItem(LS_KEY_CASES) || "[]");
-        } catch {
-          list = [];
-        }
-        current = list.find((c) => c.id === id);
-        if (!current) {
-          showError("Case not found in this browser's storage");
-          return;
-        }
-
-        content.style.display = "grid";
-        errorBox.style.display = "none";
-
-        mediaBox.innerHTML = "";
-        if (current.kind === "photo") {
-          const img = document.createElement("img");
-          img.src = current.media;
-          img.alt = "Case photo";
-          img.style.cursor = "zoom-in";
-          img.onclick = () => img.requestFullscreen?.();
-          mediaBox.appendChild(img);
-          runBtn.style.display = "inline-block"; // show Analyze for photos
-        } else {
-          const vid = document.createElement("video");
-          vid.src = current.media;
-          vid.controls = true;
-          vid.playsInline = true;
-          vid.style.background = "#000";
-          mediaBox.appendChild(vid);
-          runBtn.style.display = "none";
-        }
-
-        meta.textContent = `${current.patient?.name || "Unnamed"} — ${
-          current.kind === "photo" ? "Photo" : "Video"
-        } • ${new Date(current.ts).toLocaleString()} • Age ${
-          current.patient?.age || "-"
-        } • Date ${current.patient?.date || "-"}`;
-
-        // Load observations (with backward compatibility)
-        if (current.observations) {
-          const o = current.observations;
-          clicksLeftEl.value = o.clicksLeft ?? "";
-          clicksRightEl.value = o.clicksRight ?? "";
-          clicksBothEl.value =
-            o.clicksBoth ?? (o.clicks != null ? o.clicks : ""); // old single "clicks" field
-
-          widthEl.value = o.incisorsWidthMm ?? "";
-          notesEl.value = o.notes ?? "";
-
-          setSound("left", o.soundLeft || o.clickSound || "none");
-          setSound("right", o.soundRight || o.clickSound || "none");
-          setSound("both", o.soundBoth || o.clickSound || "none");
-        } else {
-          setSound("left", "none");
-          setSound("right", "none");
-          setSound("both", "none");
-        }
-
-        btnDelete.onclick = () => {
-          if (!confirm("Delete this case?")) return;
-          const newList = list.filter((c) => c.id !== id);
-          localStorage.setItem(LS_KEY_CASES, JSON.stringify(newList));
-          location.href = "index.html";
-        };
-      })();
-
-      // ------------ save observations ------------
-      btnSave.onclick = () => {
-        if (!current) return;
-        const listNow = JSON.parse(localStorage.getItem(LS_KEY_CASES) || "[]");
-        const idx = listNow.findIndex((c) => c.id === id);
-        if (idx === -1) return;
-
-        listNow[idx].observations = {
-          clicksLeft: clicksLeftEl.value ? Number(clicksLeftEl.value) : null,
-          clicksRight: clicksRightEl.value ? Number(clicksRightEl.value) : null,
-          clicksBoth: clicksBothEl.value ? Number(clicksBothEl.value) : null,
-
-          soundLeft: getSound("left"),
-          soundRight: getSound("right"),
-          soundBoth: getSound("both"),
-
-          notes: (notesEl.value || "").trim(),
-          incisorsWidthMm: widthEl.value ? Number(widthEl.value) : null,
-        };
-
-        localStorage.setItem(LS_KEY_CASES, JSON.stringify(listNow));
-        saveMsg.textContent = "Saved.";
-        setTimeout(() => (saveMsg.textContent = ""), 1500);
-      };
-
-      // ------------ analyze case ------------
-      runBtn.onclick = async () => {
-        anMsg.textContent = "Running analysis…";
-        runBtn.disabled = true;
-        try {
-          const known = widthEl.value
-            ? Number(widthEl.value)
-            : current?.observations?.incisorsWidthMm || null;
-
-          const res = await fetch(BACKEND, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              image_data_url: current.media, // base64 data URL saved in localStorage
-              known_centrals_mm: known || null,
-            }),
-          });
-          const data = await res.json();
-          if (!data.ok) throw new Error(data.error || "Analysis failed");
-
-          // Numbers
-          const px = data.gap_px;
-          const mm = data.gap_mm != null ? data.gap_mm.toFixed(2) + " mm" : "—";
-          const scale =
-            data.px_per_mm != null ? data.px_per_mm.toFixed(2) + " px/mm" : "—";
-          anNums.innerHTML = `<strong>AB:</strong> ${px} px &nbsp; <strong>(${mm})</strong> &nbsp; <span class="muted">scale ${scale}</span>`;
-
-          // 2×2 images
-          anGrid.innerHTML = "";
-          const tile = (title, src) => {
-            const box = document.createElement("div");
-            box.style.background = "#111826";
-            box.style.border = "1px solid #232835";
-            box.style.borderRadius = "10px";
-            box.style.padding = "8px";
-            const cap = document.createElement("div");
-            cap.textContent = title;
-            cap.style.fontSize = "12px";
-            cap.style.color = "#9aa3af";
-            cap.style.marginBottom = "6px";
-            const img = document.createElement("img");
-            img.src = src;
-            img.style.width = "100%";
-            img.style.borderRadius = "8px";
-            box.appendChild(cap);
-            box.appendChild(img);
-            anGrid.appendChild(box);
-          };
-          tile("Original", data.images.original);
-          tile("Model overlay", data.images.overlay);
-          tile("Binary mask", data.images.binary);
-          tile("Measured (AB)", data.images.measured);
-
-          anBlock.style.display = "block";
-
-          // persist analysis (optional)
-          const i = list.findIndex((c) => c.id === id);
-          if (i !== -1) {
-            list[i].analysis = {
-              gap_px: data.gap_px,
-              gap_mm: data.gap_mm,
-              px_per_mm: data.px_per_mm,
-              images: data.images,
-            };
-            localStorage.setItem(LS_KEY_CASES, JSON.stringify(list));
-          }
-
-          anMsg.textContent = "Done.";
-        } catch (e) {
-          console.error(e);
-          anMsg.textContent = "Error: " + e.message;
-        } finally {
-          runBtn.disabled = false;
-          setTimeout(() => (anMsg.textContent = ""), 2500);
-        }
-      };
-    </script>
+    <!-- IMPORTANT: only one script -->
+    <script src="case.js" defer></script>
   </body>
 </html>

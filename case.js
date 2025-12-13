@@ -158,6 +158,7 @@ function redrawCalibOverlay(img) {
 
 function handleCalibClick(e) {
   if (!isCalibrating) return;
+  if (e.cancelable) e.preventDefault();
 
   const img = e.currentTarget;
   const rect = img.getBoundingClientRect();
@@ -258,10 +259,13 @@ let list = [];
     img.alt = "Case photo";
     img.style.cursor = "crosshair";
 
-    img.addEventListener("click", handleCalibClick);
+    // img.addEventListener("click", handleCalibClick);
+    img.addEventListener("pointerdown", handleCalibClick);
     img.addEventListener("dblclick", () => img.requestFullscreen?.());
-    img.addEventListener("mousemove", (e) => {
+    // img.addEventListener("mousemove", (e) => {
+    img.addEventListener("pointermove", (e) => {
       if (!isCalibrating || calibNaturalPoints.length !== 1) return;
+      if (e.cancelable) e.preventDefault();
 
       const rect = img.getBoundingClientRect();
       const xd = e.clientX - rect.left;

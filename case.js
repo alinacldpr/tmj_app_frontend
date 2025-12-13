@@ -74,11 +74,87 @@ function setSound(side, value) {
 
 // ------- calibration state -------
 let isCalibrating = false;
+let calibCanvas = null;
+let calibCtx = null;
 
 let calibPxDist = null; // distance in REAL image pixels (natural)
 let calibPxPerMm = null;
 
 let calibNaturalPoints = []; // [{x,y}] natural coords
+let calibHoverNatural = null; // {x,y} while moving mouse
+
+function redrawCalibOverlay(img) {
+  if (!calibCtx || !calibCanvas) return;
+
+  // clear
+  calibCtx.clearRect(0, 0, calibCanvas.width, calibCanvas.height);
+
+  // draw points (use display coords)
+  const rect = img.getBoundingClientRect();
+  const sx = rect.width / img.naturalWidth;
+  const sy = rect.height / img.naturalHeight;
+
+  for (const p of calibNaturalPoints) {
+    const xd = p.x * sx;
+    const yd = p.y * sy;
+
+    calibCtx.beginPath();
+    calibCtx.arc(xd, yd, 5, 0, Math.PI * 2);
+    calibCtx.fillStyle = "#22c55e"; // green dot
+    calibCtx.fill();
+    calibCtx.lineWidth = 2;
+    calibCtx.strokeStyle = "#0b0e14"; // dark outline
+    calibCtx.stroke();
+  }
+
+  // draw segment
+  if (calibNaturalPoints.length === 2) {
+    const a = calibNaturalPoints[0];
+    const b = calibNaturalPoints[1];
+
+    const ax = a.x * sx;
+    const ay = a.y * sy;
+    const bx = b.x * sx;
+    const by = b.y * sy;
+
+    // line
+    calibCtx.beginPath();
+    calibCtx.moveTo(ax, ay);
+    calibCtx.lineTo(bx, by);
+    calibCtx.lineWidth = 3;
+    calibCtx.strokeStyle = "#22c55e";
+    calibCtx.stroke();
+
+    // ---- label (mm) ----
+    const mm = widthEl.value ? Number(widthEl.value) : null;
+    if (mm) {
+      const mx = (ax + bx) / 2;
+      const my = (ay + by) / 2 - 10; // above the line
+
+      calibCtx.font = "12px system-ui, sans-serif";
+      calibCtx.fillStyle = "#22c55e";
+      calibCtx.textAlign = "center";
+      calibCtx.textBaseline = "bottom";
+
+      calibCtx.fillText(`${mm} mm`, mx, my);
+    }
+  }
+
+  // live preview line (after first click)
+  if (calibNaturalPoints.length === 1 && calibHoverNatural) {
+    const a = calibNaturalPoints[0];
+    const b = calibHoverNatural;
+
+    calibCtx.beginPath();
+    calibCtx.moveTo(a.x * sx, a.y * sy);
+    calibCtx.lineTo(b.x * sx, b.y * sy);
+    calibCtx.setLineDash([6, 6]);
+    calibCtx.lineWidth = 2;
+    calibCtx.strokeStyle = "#22c55e";
+    calibCtx.stroke();
+    calibCtx.setLineDash([]);
+  }
+}
 
 function handleCalibClick(e) {
   if (!isCalibrating) return;
@@ -99,6 +175,8 @@ function handleCalibClick(e) {
   const yn = yd * sy;
 
   calibNaturalPoints.push({ x: xn, y: yn });
+  calibHoverNatural = null;
+  redrawCalibOverlay(img);
 
   if (calibNaturalPoints.length === 2) {
     const dx = calibNaturalPoints[1].x - calibNaturalPoints[0].x;
@@ -113,6 +191,9 @@ function handleCalibClick(e) {
     calibPxDist = null;
     calibPxPerMm = null;
     calibMsg.textContent = "Restarted calibration: click 2 points";
+
+    calibHoverNatural = null;
+    redrawCalibOverlay(img);
   }
 }
 
@@ -121,7 +202,7 @@ function updateCalibrationFromInputs() {
   if (!mm || !calibPxDist) return;
 
   calibPxPerMm = calibPxDist / mm;
-  isCalibrating = false;
+  // isCalibrating = false;
 
   calibMsg.textContent = `Calibrated: ${calibPxPerMm.toFixed(2)} px/mm`;
   console.log("px_per_mm =", calibPxPerMm);
@@ -130,6 +211,10 @@ function updateCalibrationFromInputs() {
 // When the user types mm, compute if we already have 2 points
 widthEl.addEventListener("input", () => {
   if (calibPxDist) updateCalibrationFromInputs();
+  if (calibCanvas && calibCtx && calibNaturalPoints.length === 2) {
+    const img = mediaBox.querySelector("img");
+    if (img) redrawCalibOverlay(img);
+  }
 });
 
 // ------- load case -------
@@ -175,8 +260,43 @@ let list = [];
 
     img.addEventListener("click", handleCalibClick);
     img.addEventListener("dblclick", () => img.requestFullscreen?.());
+    img.addEventListener("mousemove", (e) => {
+      if (!isCalibrating || calibNaturalPoints.length !== 1) return;
 
+      const rect = img.getBoundingClientRect();
+      const xd = e.clientX - rect.left;
+      const yd = e.clientY - rect.top;
+
+      const sx = img.naturalWidth / rect.width;
+      const sy = img.naturalHeight / rect.height;
+
+      calibHoverNatural = {
+        x: xd * sx,
+        y: yd * sy,
+      };
+
+      redrawCalibOverlay(img);
+    });
+
+    // NEW: canvas overlay (for drawing points/lines)
+    calibCanvas = document.createElement("canvas");
+    calibCanvas.className = "calibOverlay";
+    calibCtx = calibCanvas.getContext("2d");
+
+    // Put image first, canvas on top
     mediaBox.appendChild(img);
+    mediaBox.appendChild(calibCanvas);
+
+    // Keep canvas size synced to displayed image size
+    function resizeCanvas() {
+      const r = img.getBoundingClientRect();
+      calibCanvas.width = Math.max(1, Math.round(r.width));
+      calibCanvas.height = Math.max(1, Math.round(r.height));
+    }
+
+    img.addEventListener("load", resizeCanvas);
+    if (img.complete) resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
 
     runBtn.style.display = "inline-block";
     btnCalibrate.style.display = "inline-block";
@@ -237,10 +357,13 @@ let list = [];
 btnCalibrate.onclick = () => {
   isCalibrating = true;
   calibNaturalPoints = [];
+  calibHoverNatural = null;
   calibPxDist = null;
   calibPxPerMm = null;
 
   calibMsg.textContent = "Calibration ON: click 2 points";
+  if (calibCtx && calibCanvas)
+    calibCtx.clearRect(0, 0, calibCanvas.width, calibCanvas.height);
 };
 
 btnSave.onclick = () => {

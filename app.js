@@ -63,7 +63,7 @@ async function addCase(kind, file, captured) {
   const pat = JSON.parse(localStorage.getItem(LS_KEY_PAT) || "{}");
   const reader = new FileReader();
   reader.onload = () => {
-    const url = reader.result; // data URL for MVP
+    const url = reader.result;
     const id = Date.now().toString();
     const rec = {
       id,
@@ -71,11 +71,23 @@ async function addCase(kind, file, captured) {
       captured,
       ts: new Date().toISOString(),
       patient: pat,
+
+      // statusul cazului (se va schimba după analiză)
       status: "Awaiting Analysis",
+
       thumb: kind === "photo" ? url : null,
       media: url,
-      observations: null, // will be filled on case page
+
+      // observații clinice adăugate manual
+      observations: null,
+
+      // rezultate generate de model (imagini + valori)
+      analysis: null,
+
+      // când a fost rulată analiza
+      analysisTs: null,
     };
+
     const list = JSON.parse(localStorage.getItem(LS_KEY_CASES) || "[]");
     list.unshift(rec);
     localStorage.setItem(LS_KEY_CASES, JSON.stringify(list));
@@ -149,8 +161,9 @@ function renderCases() {
     row.appendChild(meta);
 
     const badge = document.createElement("span");
+    // culoarea badge-ului depinde strict de status
     badge.className =
-      "badge " + (c.status.includes("Await") ? "await" : "ready");
+      "badge " + (c.status === "Awaiting Analysis" ? "await" : "ready");
     badge.textContent = c.status;
     badge.classList.add("status");
     row.appendChild(badge);

@@ -322,6 +322,11 @@ let list = [];
     current.patient?.age || "-"
   } • Date ${current.patient?.date || "-"}`;
 
+  // dacă cazul a fost analizat deja, afișăm rezultatele imediat
+  if (current.analysis) {
+    renderAnalysis(current.analysis);
+  }
+
   // Load observations
   if (current.observations) {
     const o = current.observations;
@@ -403,6 +408,54 @@ btnSave.onclick = () => {
   setTimeout(() => (saveMsg.textContent = ""), 1500);
 };
 
+function renderAnalysis(analysis) {
+  if (!analysis) return;
+
+  // scriem sumarul numeric (AB + mm + scală)
+  const px = analysis.gap_px;
+  const mm = analysis.gap_mm != null ? analysis.gap_mm.toFixed(2) + " mm" : "—";
+  const scale =
+    analysis.px_per_mm != null ? analysis.px_per_mm.toFixed(2) + " px/mm" : "—";
+
+  anNums.innerHTML =
+    `<strong>AB:</strong> ${px} px &nbsp; <strong>(${mm})</strong> ` +
+    `&nbsp; <span class="muted">scale ${scale}</span>`;
+
+  // refacem grid-ul cu imaginile salvate
+  anGrid.innerHTML = "";
+
+  const tile = (title, src) => {
+    const box = document.createElement("div");
+    box.style.background = "#111826";
+    box.style.border = "1px solid #232835";
+    box.style.borderRadius = "10px";
+    box.style.padding = "8px";
+
+    const cap = document.createElement("div");
+    cap.textContent = title;
+    cap.style.fontSize = "12px";
+    cap.style.color = "#9aa3af";
+    cap.style.marginBottom = "6px";
+
+    const img = document.createElement("img");
+    img.src = src;
+    img.style.width = "100%";
+    img.style.borderRadius = "8px";
+
+    box.appendChild(cap);
+    box.appendChild(img);
+    anGrid.appendChild(box);
+  };
+
+  tile("Original", analysis.images.original);
+  tile("Model overlay", analysis.images.overlay);
+  tile("Binary mask", analysis.images.binary);
+  tile("Measured (AB)", analysis.images.measured);
+
+  // arătăm blocul de Analysis
+  anBlock.style.display = "block";
+}
+
 // ------- analyze case (photos) -------
 runBtn.onclick = async () => {
   anMsg.textContent = "Running analysis…";
@@ -431,55 +484,33 @@ runBtn.onclick = async () => {
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || "Analysis failed");
 
-    const px = data.gap_px;
-    const mm = data.gap_mm != null ? data.gap_mm.toFixed(2) + " mm" : "—";
-    const scale =
-      data.px_per_mm != null ? data.px_per_mm.toFixed(2) + " px/mm" : "—";
-
-    anNums.innerHTML =
-      `<strong>AB:</strong> ${px} px &nbsp; <strong>(${mm})</strong> ` +
-      `&nbsp; <span class="muted">scale ${scale}</span>`;
-
-    anGrid.innerHTML = "";
-    const tile = (title, src) => {
-      const box = document.createElement("div");
-      box.style.background = "#111826";
-      box.style.border = "1px solid #232835";
-      box.style.borderRadius = "10px";
-      box.style.padding = "8px";
-
-      const cap = document.createElement("div");
-      cap.textContent = title;
-      cap.style.fontSize = "12px";
-      cap.style.color = "#9aa3af";
-      cap.style.marginBottom = "6px";
-
-      const img = document.createElement("img");
-      img.src = src;
-      img.style.width = "100%";
-      img.style.borderRadius = "8px";
-
-      box.appendChild(cap);
-      box.appendChild(img);
-      anGrid.appendChild(box);
+    // pregătim “pachetul” de analiză într-un singur loc
+    const analysisPack = {
+      gap_px: data.gap_px,
+      gap_mm: data.gap_mm,
+      px_per_mm: data.px_per_mm,
+      images: data.images,
     };
 
-    tile("Original", data.images.original);
-    tile("Model overlay", data.images.overlay);
-    tile("Binary mask", data.images.binary);
-    tile("Measured (AB)", data.images.measured);
-
-    anBlock.style.display = "block";
+    // randăm UI folosind funcția comună (și la reload)
+    renderAnalysis(analysisPack);
 
     const i = list.findIndex((c) => c.id === id);
     if (i !== -1) {
-      list[i].analysis = {
-        gap_px: data.gap_px,
-        gap_mm: data.gap_mm,
-        px_per_mm: data.px_per_mm,
-        images: data.images,
-      };
+      // salvăm rezultatul analizei, ca să rămână în cazul respectiv
+      // salvăm exact ce am afișat în UI
+      list[i].analysis = analysisPack;
+
+      // marcăm cazul ca analizat (asta îți schimbă badge-ul pe Home)
+      list[i].status = "Analyzed";
+
+      // opțional: ținem minte când s-a făcut analiza
+      list[i].analysisTs = new Date().toISOString();
+
       localStorage.setItem(LS_KEY_CASES, JSON.stringify(list));
+
+      // ținem și variabila "current" sincronizată, ca să fie corect în pagină
+      current = list[i];
     }
 
     anMsg.textContent = "Done.";
